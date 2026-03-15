@@ -56,18 +56,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </Link>
 
         {/* Hover overlay — 2 buttons */}
-        <div className="absolute inset-0 rounded-lg bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3 gap-2">
+        <div className="absolute inset-0 rounded-lg bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3 gap-2 pointer-events-none">
           <button
             onClick={handleAddToCart}
             disabled={product.stock === 0}
-            className="flex items-center gap-1.5 bg-[#252B42] text-white text-[12px] font-bold px-4 py-2 rounded-lg hover:bg-[#2DC071] transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 bg-[#252B42] text-white text-[12px] font-bold px-4 py-2 rounded-lg hover:bg-[#2DC071] transition-colors disabled:opacity-50 pointer-events-auto"
           >
             <FiShoppingCart size={13} />
             Add to Cart
           </button>
           <button
             onClick={handleWishlist}
-            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors pointer-events-auto ${
               wishlisted
                 ? "bg-red-50 border border-red-300"
                 : "bg-white border border-gray-200 hover:border-red-300 hover:bg-red-50"
