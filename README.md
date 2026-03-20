@@ -351,8 +351,8 @@ Most secure option — card data never touches our server. PCI compliant out of 
 ## 👨‍💻 Author
 
 **Muhammad Waheed**  
-Full-Stack Developer | GIAIC Batch 1  
-[LinkedIn](https://linkedin.com/in/yourprofile) · [GitHub](https://github.com/yourusername)
+Full-Stack Developer | Agentic AI Engineeer  
+[LinkedIn](https://linkedin.com/in/muhammadwaheedairi) · [GitHub](https://github.com/muhammadwaheedairi)
 
 ---
 
