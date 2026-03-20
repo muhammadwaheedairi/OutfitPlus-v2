@@ -341,18 +341,18 @@ export default function BlogDetail({ post }: { post: BlogPost }) {
               </h3>
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0 relative z-10">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto relative z-10">
               <Link
                 href="/blog"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
-                className="px-6 py-3 rounded-2xl border border-white/20 text-[13px] font-semibold text-white hover:bg-white/10 transition-colors whitespace-nowrap"
+                className="px-6 py-3 rounded-2xl border border-white/20 text-[13px] font-semibold text-white hover:bg-white/10 transition-colors text-center"
               >
                 ← More Articles
               </Link>
               <Link
                 href="/product"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
-                className="px-6 py-3 rounded-2xl bg-[#23A6F0] text-[13px] font-semibold text-white hover:bg-[#2DC071] transition-colors whitespace-nowrap shadow-lg shadow-[#23A6F0]/20"
+                className="px-6 py-3 rounded-2xl bg-[#23A6F0] text-[13px] font-semibold text-white hover:bg-[#2DC071] transition-colors shadow-lg shadow-[#23A6F0]/20 text-center"
               >
                 Shop Now →
               </Link>
