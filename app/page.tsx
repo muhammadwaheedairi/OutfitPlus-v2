@@ -1,4 +1,4 @@
-import Header from "@/components/layout/header";
+import HeaderNav from "@/components/layout/header-nav";
 import Footer from "@/components/layout/footer";
 import Hero from "@/components/home/hero";
 import EditorsPicks from "@/components/home/editors-picks";
@@ -10,7 +10,7 @@ import FeaturedPosts from "@/components/home/featured-posts";
 export default function Home() {
   return (
     <>
-      <Header />
+      <HeaderNav />
       <Hero />
       <EditorsPicks />
       <FeaturedProducts />

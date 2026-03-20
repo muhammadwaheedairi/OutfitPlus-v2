@@ -1,9 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useReducer } from "react";
+import { useUser } from "@clerk/nextjs";
 import type { Product } from "@/types";
-
-// ─── STATE ────────────────────────────────────────────────────────────────────
 
 interface WishlistState {
   items: Product[];
@@ -30,8 +29,6 @@ function wishlistReducer(state: WishlistState, action: WishlistAction): Wishlist
   }
 }
 
-// ─── CONTEXT ──────────────────────────────────────────────────────────────────
-
 interface WishlistContextValue {
   items: Product[];
   addToWishlist: (product: Product) => void;
@@ -41,30 +38,83 @@ interface WishlistContextValue {
 }
 
 const WishlistContext = createContext<WishlistContextValue | undefined>(undefined);
-
 const WISHLIST_KEY = "outfit-plus-wishlist";
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(wishlistReducer, { items: [] });
+  const { user, isLoaded } = useUser();
 
+  // Hydrate — logged in: DB se, logged out: localStorage se
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(WISHLIST_KEY);
-      if (stored) dispatch({ type: "HYDRATE", payload: JSON.parse(stored) });
-    } catch {}
-  }, []);
+    if (!isLoaded) return;
 
+    if (user) {
+      // Fetch from DB
+      fetch("/api/wishlist")
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const products: Product[] = data.map((item: any) => ({
+              _id: item.productId,
+              name: item.name,
+              price: item.price,
+              image: item.image ? JSON.parse(item.image) : null,
+              category: item.category ?? "",
+              discount: 0,
+              stock: 99,
+              rating: 0,
+              tags: [],
+              description: "",
+            }));
+            dispatch({ type: "HYDRATE", payload: products });
+          }
+        })
+        .catch(() => {});
+    } else {
+      // Fallback to localStorage
+      try {
+        const stored = localStorage.getItem(WISHLIST_KEY);
+        if (stored) dispatch({ type: "HYDRATE", payload: JSON.parse(stored) });
+      } catch {}
+    }
+  }, [user, isLoaded]);
+
+  // Persist to localStorage when logged out
   useEffect(() => {
-    try {
-      localStorage.setItem(WISHLIST_KEY, JSON.stringify(state.items));
-    } catch {}
-  }, [state.items]);
+    if (!user) {
+      try {
+        localStorage.setItem(WISHLIST_KEY, JSON.stringify(state.items));
+      } catch {}
+    }
+  }, [state.items, user]);
 
-  const addToWishlist = (product: Product) =>
+  const addToWishlist = async (product: Product) => {
     dispatch({ type: "ADD_ITEM", payload: product });
+    if (user) {
+      await fetch("/api/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product._id,
+          name: product.name,
+          price: product.price,
+          image: product.image ? JSON.stringify(product.image) : null,
+          category: product.category,
+        }),
+      }).catch(() => {});
+    }
+  };
 
-  const removeFromWishlist = (id: string) =>
+  const removeFromWishlist = async (id: string) => {
     dispatch({ type: "REMOVE_ITEM", payload: id });
+    if (user) {
+      await fetch("/api/wishlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: id }),
+      }).catch(() => {});
+    }
+  };
 
   const isInWishlist = (id: string) => state.items.some((i) => i._id === id);
 

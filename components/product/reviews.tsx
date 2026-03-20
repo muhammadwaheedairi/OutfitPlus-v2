@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getReviews, submitReview } from "@/sanity/lib/client";
+import { getReviews } from "@/sanity/lib/client";
+import { useUser } from "@clerk/nextjs";
 import { FiStar, FiUser } from "react-icons/fi";
 
 interface Review {
@@ -13,9 +14,10 @@ interface Review {
 }
 
 export default function ReviewsAndRatings({ productId }: { productId: string }) {
+  const { user, isLoaded } = useUser();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [averageRating, setAverageRating] = useState(0);
-  const [newReview, setNewReview] = useState({ rating: 0, comment: "", userName: "" });
+  const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
   const [hover, setHover] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -35,15 +37,38 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) { setError("Please sign in to submit a review."); return; }
     if (!newReview.rating) { setError("Please select a star rating."); return; }
+
     setIsSubmitting(true);
     setError("");
+
     try {
-      const submitted = await submitReview(productId, newReview);
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId,
+          rating: newReview.rating,
+          comment: newReview.comment,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+
+      const submitted: Review = {
+        _id: data.id?.toString() ?? Date.now().toString(),
+        rating: newReview.rating,
+        comment: newReview.comment,
+        userName: user.fullName ?? user.emailAddresses[0]?.emailAddress ?? "Anonymous",
+        createdAt: new Date().toISOString(),
+      };
+
       setReviews([submitted, ...reviews]);
       const newAvg = (averageRating * reviews.length + submitted.rating) / (reviews.length + 1);
       setAverageRating(newAvg);
-      setNewReview({ rating: 0, comment: "", userName: "" });
+      setNewReview({ rating: 0, comment: "" });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch {
@@ -67,16 +92,13 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
             </p>
             <div className="flex gap-0.5 mt-1 justify-center">
               {[1, 2, 3, 4, 5].map((s) => (
-                <FiStar
-                  key={s}
-                  size={14}
+                <FiStar key={s} size={14}
                   className={s <= Math.round(averageRating) ? "fill-[#F3CD03] text-[#F3CD03]" : "text-gray-200"}
                 />
               ))}
             </div>
             <p className="text-[12px] text-[#737373] mt-1">{reviews.length} reviews</p>
           </div>
-          {/* Bar chart */}
           <div className="flex-1 space-y-1.5">
             {[5, 4, 3, 2, 1].map((s) => {
               const count = reviews.filter((r) => r.rating === s).length;
@@ -98,76 +120,79 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
         {/* Write Review Form */}
         <div>
           <h3 className="text-[16px] font-bold text-[#252B42] mb-4">Write a Review</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
 
-            {/* Star Rating Picker */}
-            <div>
-              <label className="block text-[12px] font-semibold text-[#737373] uppercase tracking-wider mb-2">
-                Your Rating *
-              </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onMouseEnter={() => setHover(s)}
-                    onMouseLeave={() => setHover(0)}
-                    onClick={() => setNewReview((p) => ({ ...p, rating: s }))}
-                  >
-                    <FiStar
-                      size={26}
-                      className={`transition-colors ${
-                        s <= (hover || newReview.rating)
-                          ? "fill-[#F3CD03] text-[#F3CD03]"
-                          : "text-gray-200"
-                      }`}
-                    />
-                  </button>
-                ))}
+          {/* Not logged in state */}
+          {isLoaded && !user ? (
+            <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
+              <p className="text-[14px] text-[#737373] mb-3">Sign in to write a review</p>
+              <button
+                onClick={() => window.location.href = "/sign-in"}
+                className="px-6 py-2.5 bg-[#252B42] text-white text-[13px] font-bold rounded-lg hover:bg-[#2DC071] transition-colors"
+              >
+                Sign In
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+
+              {/* Logged in user */}
+              {user && (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-[#252B42] flex items-center justify-center flex-shrink-0">
+                    <FiUser size={13} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#252B42]">
+                      {user.fullName ?? user.emailAddresses[0]?.emailAddress}
+                    </p>
+                    <p className="text-[11px] text-[#737373]">Posting as you</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Star Rating */}
+              <div>
+                <label className="block text-[12px] font-semibold text-[#737373] uppercase tracking-wider mb-2">
+                  Your Rating *
+                </label>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button key={s} type="button"
+                      onMouseEnter={() => setHover(s)}
+                      onMouseLeave={() => setHover(0)}
+                      onClick={() => setNewReview((p) => ({ ...p, rating: s }))}
+                    >
+                      <FiStar size={26} className={`transition-colors ${
+                        s <= (hover || newReview.rating) ? "fill-[#F3CD03] text-[#F3CD03]" : "text-gray-200"
+                      }`} />
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Name */}
-            <div>
-              <label className="block text-[12px] font-semibold text-[#737373] uppercase tracking-wider mb-1.5">
-                Your Name *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. John Doe"
-                value={newReview.userName}
-                onChange={(e) => setNewReview((p) => ({ ...p, userName: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-[14px] text-[#252B42] placeholder:text-gray-300 focus:outline-none focus:border-[#252B42] transition-colors"
-              />
-            </div>
+              {/* Comment */}
+              <div>
+                <label className="block text-[12px] font-semibold text-[#737373] uppercase tracking-wider mb-1.5">
+                  Your Review *
+                </label>
+                <textarea required rows={3}
+                  placeholder="Share your experience..."
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview((p) => ({ ...p, comment: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-[14px] text-[#252B42] placeholder:text-gray-300 focus:outline-none focus:border-[#252B42] transition-colors resize-none"
+                />
+              </div>
 
-            {/* Comment */}
-            <div>
-              <label className="block text-[12px] font-semibold text-[#737373] uppercase tracking-wider mb-1.5">
-                Your Review *
-              </label>
-              <textarea
-                required
-                rows={3}
-                placeholder="Share your experience..."
-                value={newReview.comment}
-                onChange={(e) => setNewReview((p) => ({ ...p, comment: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-[14px] text-[#252B42] placeholder:text-gray-300 focus:outline-none focus:border-[#252B42] transition-colors resize-none"
-              />
-            </div>
+              {error && <p className="text-[13px] text-[#E74040]">{error}</p>}
+              {success && <p className="text-[13px] text-[#2DC071] font-semibold">✓ Review submitted!</p>}
 
-            {error && <p className="text-[13px] text-[#E74040]">{error}</p>}
-            {success && <p className="text-[13px] text-[#2DC071] font-semibold">✓ Review submitted!</p>}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#252B42] text-white py-3 rounded-lg text-[14px] font-semibold hover:bg-[#2DC071] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Submitting..." : "Submit Review"}
-            </button>
-          </form>
+              <button type="submit" disabled={isSubmitting}
+                className="w-full bg-[#252B42] text-white py-3 rounded-lg text-[14px] font-semibold hover:bg-[#2DC071] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Review"}
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -198,9 +223,7 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
                 </div>
                 <div className="flex gap-0.5 flex-shrink-0">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <FiStar
-                      key={s}
-                      size={12}
+                    <FiStar key={s} size={12}
                       className={s <= review.rating ? "fill-[#F3CD03] text-[#F3CD03]" : "text-gray-200"}
                     />
                   ))}

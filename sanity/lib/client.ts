@@ -58,12 +58,10 @@ export async function getFeaturedBanner2Product() {
 }
 
 export async function getFeaturedProducts() {
-  // Try featured tag first
   const featured = await client.fetch(
     `*[_type == "product" && "featured" in tags] | order(_createdAt desc)[0...8] { ${PRODUCT_FIELDS} }`
   );
   if (featured && featured.length > 0) return featured;
-  // Fallback: 2 products from each category for variety
   const [men, women, kids, acc] = await Promise.all([
     client.fetch(`*[_type == "product" && category == "Men's Wear"] | order(_createdAt desc)[0...2] { ${PRODUCT_FIELDS} }`),
     client.fetch(`*[_type == "product" && category == "Women's Wear"] | order(_createdAt desc)[0...2] { ${PRODUCT_FIELDS} }`),
@@ -125,28 +123,16 @@ export async function getFeaturedPosts() {
   );
 }
 
-// ─── REVIEW QUERIES ───────────────────────────────────────────────────────────
+// ─── REVIEWS — Neon DB se (API route ke zariye) ───────────────────────────────
 
-export async function getReviews(productId: string) {
-  return client.fetch(
-    `*[_type == "review" && product._ref == $productId] | order(_createdAt desc) {
-      _id, rating, comment, userName,
-      "createdAt": _createdAt
-    }`,
-    { productId }
-  );
-}
-
-export async function submitReview(
-  productId: string,
-  review: { rating: number; comment: string; userName: string }
-) {
-  const doc = await client.create({
-    _type: "review",
-    product: { _type: "reference", _ref: productId },
-    rating: review.rating,
-    comment: review.comment,
-    userName: review.userName,
-  });
-  return { ...doc, createdAt: doc._createdAt };
+export async function getReviews(productId: string): Promise<any[]> {
+  try {
+    const res = await fetch(`/api/reviews?productId=${productId}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
 }

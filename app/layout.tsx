@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
 import { CartProvider } from "@/context/cart-context";
 import { WishlistProvider } from "@/context/wishlist-context";
 import { SanityLive } from "@/sanity/lib/live";
@@ -19,15 +20,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <CartProvider>
-          <WishlistProvider>
-            {children}
-            <SanityLive />
-          </WishlistProvider>
-        </CartProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body>
+          <CartProvider>
+            <WishlistProvider>
+              {children}
+              <SanityLive />
+            </WishlistProvider>
+          </CartProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
