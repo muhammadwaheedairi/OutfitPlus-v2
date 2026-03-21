@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getReviews } from "@/sanity/lib/client";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignInButton } from "@clerk/nextjs";
 import { FiStar, FiUser } from "react-icons/fi";
 
 interface Review {
@@ -47,11 +47,7 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId,
-          rating: newReview.rating,
-          comment: newReview.comment,
-        }),
+        body: JSON.stringify({ productId, rating: newReview.rating, comment: newReview.comment }),
       });
 
       const data = await res.json();
@@ -121,21 +117,19 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
         <div>
           <h3 className="text-[16px] font-bold text-[#252B42] mb-4">Write a Review</h3>
 
-          {/* Not logged in state */}
+          {/* Not logged in */}
           {isLoaded && !user ? (
             <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl">
-              <p className="text-[14px] text-[#737373] mb-3">Sign in to write a review</p>
-              <button
-                onClick={() => window.location.href = "/sign-in"}
-                className="px-6 py-2.5 bg-[#252B42] text-white text-[13px] font-bold rounded-lg hover:bg-[#2DC071] transition-colors"
-              >
-                Sign In
-              </button>
+              <FiUser size={28} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-[14px] text-[#737373] mb-4">Sign in to write a review</p>
+              <SignInButton mode="modal">
+                <button className="px-6 py-2.5 bg-[#252B42] text-white text-[13px] font-bold rounded-lg hover:bg-[#2DC071] transition-colors">
+                  Sign In
+                </button>
+              </SignInButton>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-
-              {/* Logged in user */}
               {user && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-8 h-8 rounded-full bg-[#252B42] flex items-center justify-center flex-shrink-0">
@@ -150,7 +144,6 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
                 </div>
               )}
 
-              {/* Star Rating */}
               <div>
                 <label className="block text-[12px] font-semibold text-[#737373] uppercase tracking-wider mb-2">
                   Your Rating *
@@ -170,7 +163,6 @@ export default function ReviewsAndRatings({ productId }: { productId: string }) 
                 </div>
               </div>
 
-              {/* Comment */}
               <div>
                 <label className="block text-[12px] font-semibold text-[#737373] uppercase tracking-wider mb-1.5">
                   Your Review *
